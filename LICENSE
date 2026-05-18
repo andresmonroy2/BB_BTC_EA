@@ -1,3 +1,49 @@
-Placeholder license
+# Licencia de BB_BTC_EA
 
-This repository requires a license. Replace this file with the appropriate license text (e.g., MIT, Apache-2.0) before public distribution.
+[PLACEHOLDER - A COMPLETAR POR EL USUARIO]
+
+Selecciona una de las siguientes opciones y reemplaza este texto:
+
+## Opción 1: Licencia Propietaria
+
+```
+Copyright © 2026 [TU_NOMBRE]
+
+Todos los derechos reservados. Este software está protegido por copyright
+y no puede ser usado, copiado, modificado o distribuido sin autorización
+expresa del propietario.
+
+La información técnica contenida en este software es confidencial.
+Se prohíbe compartir, distribuir o reproducir sin consentimiento escrito.
+```
+
+## Opción 2: MIT License
+
+```
+MIT License
+
+Copyright (c) 2026 [TU_NOMBRE]
+
+Se concede permiso, gratuitamente, a cualquier persona que obtenga una copia
+de este software y archivos de documentación asociados (el "Software"), para
+tratar en el Software sin restricción, incluyendo sin limitación los derechos
+de usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o
+vender copias del Software...
+
+[Ver texto completo en: https://opensource.org/licenses/MIT]
+```
+
+## Opción 3: GPL v3
+
+```
+Este programa es software libre: puede redistribuirlo y/o modificarlo bajo
+los términos de la Licencia Pública General GNU publicada por la Free Software
+Foundation, versión 3 de la Licencia...
+
+[Ver texto completo en: https://www.gnu.org/licenses/gpl-3.0.en.html]
+```
+
+**Instrucciones**:
+1. Elige la opción que mejor se ajuste a tu necesidad
+2. Reemplaza [TU_NOMBRE] con tu nombre/organización
+3. Reemplaza este archivo con el texto completo de la licencia elegida
