@@ -1,176 +1,155 @@
-# Institutional Trading Bot V8 – MetaTrader 5
+# BB_BTC_EA_v8_1 — Expert Advisor para MetaTrader 5
 
-Arquitectura algorítmica institucional diseñada para ejecución robusta en **MetaTrader 5 (MT5)** bajo estándares técnicos avanzados.
-
----
-
-##  Descripción General
-
-Institutional Trading Bot V8 es un Expert Advisor (EA) desarrollado en MQL5 con enfoque en:
-
-- Robustez arquitectónica
-- Gestión de riesgo institucional
-- Control disciplinado de ejecución
-- Trazabilidad operativa
-- Preparación para entorno real
-
-El sistema está diseñado para operar bajo principios de ingeniería de sistemas aplicados a trading algorítmico.
+BB_BTC_EA_v8_1 es un Expert Advisor MQL5 para trading sistemático con BTC/USD, diseñado para operar bajo criterios de robustez, control de riesgo y trazabilidad técnica.
 
 ---
 
-##  Objetivo del Proyecto
+##  Resumen técnico
 
-Construir un bot:
+Este repositorio incluye:
 
-- 100% compilable en MetaTrader 5
-- Sin errores críticos de ejecución
-- Arquitectónicamente modular
-- Con gestión de riesgo estricta
-- Validado mediante backtesting estructurado
-- Listo para transición a entorno real bajo disciplina técnica
+- `src/BB_BTC_EA_v8_1.mq5` — código fuente del EA
+- `src/config/default_parameters.set` — parámetros recomendados de lanzamiento
+- `releases/v1.0/` — paquete de entrega listo para auditoría
+- `docs/` — documentación técnica y de despliegue en español
 
 ---
 
-##  Arquitectura General
+##  Estructura del repositorio
 
-El sistema está organizado bajo separación funcional:
-/Experts/
-InstitutionalBot_V8.mq5
-
-/Include/
-Strategy.mqh
-RiskManager.mqh
-ExecutionEngine.mqh
-Logger.mqh
-
-
-### Componentes
-
-| Módulo | Responsabilidad |
-|--------|-----------------|
-| Strategy | Generación de señales |
-| RiskManager | Cálculo de lotaje y control de exposición |
-| ExecutionEngine | Gestión de órdenes |
-| Logger | Registro estructurado |
-| Expert Principal | Orquestación general |
+- `src/` — código fuente, parámetros y placeholders modulares
+- `docs/` — manual técnico, especificación de riesgo y protocolos de validación
+- `releases/v1.0/` — entrega formal del release
+- `README.md` — visión general y accesos rápidos
 
 ---
 
-##  Requisitos Técnicos
+##  Documentación clave
 
-- MetaTrader 5 (Build actualizado)
-- Cuenta Demo o Real
-- Símbolo con historial suficiente para backtesting
-- Conocimiento básico de parámetros de EA
-
----
-
-##  Instalación
-
-1. Abrir MetaTrader 5
-2. Ir a: Archivo → Abrir carpeta de datos
-3. Copiar archivos a: MQL5/Experts/
-4. Compilar desde MetaEditor
-5. Arrastrar el EA al gráfico deseado
-6. Activar:
-- AutoTrading
-- Permitir trading algorítmico
+- [Manual técnico oficial](./docs/Manual_Tecnico_Oficial.md)
+- [Especificación de gestión de riesgos](./docs/RISK_MANAGEMENT_SPEC.md)
+- [Protocolo de validación de backtesting](./docs/BACKTEST_VALIDATION_PROTOCOL.md)
+- [Guía de despliegue](./docs/DEPLOYMENT_GUIDE.md)
+- [Changelog del proyecto](./docs/CHANGELOG.md)
+- [Guía de instalación](./Guia_Instalacion.md)
+- [Protocolo de forward testing](./Protocolo_Forward_Testing.md)
+- [Procedimientos de emergencia](./Procedimientos_Emergencia.md)
 
 ---
 
-## 🔧 Parámetros Principales
+##  Objetivo del proyecto
 
-| Parámetro | Descripción |
-|-----------|------------|
-| Risk_Percent | Riesgo por operación |
-| StopLoss_Points | Stop Loss en puntos |
-| TakeProfit_Points | Take Profit en puntos |
-| Max_Trades | Número máximo de operaciones simultáneas |
-| Magic_Number | Identificador único del EA |
+Desarrollar un EA para MT5 con:
 
----
-
-## Métricas de Evaluación (Backtesting)
-
-Se recomienda evaluar:
-
-- Profit Factor (>1.5 recomendado)
-- Max Drawdown (<20% ideal)
-- Recovery Factor
-- Expectancy
-- Sharpe Ratio
-- Win Rate
-- R:R promedio
+- Gestión de riesgo cuantitativa
+- Controles de validación en tiempo de ejecución
+- Compatibilidad Netting y Hedging
+- Auditoría técnica explícita
+- Preparación para transition a ambiente real
 
 ---
 
-##  Proceso de Validación
+##  Arquitectura del EA
 
-###  Backtest Inicial
-- Periodo mínimo: 2 años
-- Modo: "Every tick based on real ticks"
-- Spread realista
+BB_BTC_EA_v8_1 sigue una arquitectura orientada a eventos y validaciones secuenciales.
 
-###  Walk Forward Analysis
-- Dividir histórico en:
-- In-sample
-- Out-of-sample
+### Flujo principal
 
-###  Stress Testing
-- Variación de spread
-- Slippage simulado
-- Diferentes brokers
+1. `OnInit()` — inicializa indicadores, parámetros y contadores diarios
+2. `OnTick()` — ejecuta validaciones de conexión, protección y señal
+3. `ExecuteTrade()` — gestiona órdenes con lógica de slippage y re-quote
+4. `OnTradeTransaction()` — actualiza contador de pérdidas y estado de trade
 
-### Forward Testing
-- Cuenta demo
-- 2–4 semanas mínimo
+### Módulos y responsabilidades
 
----
+- `Strategy` — análisis de Bollinger Bands y generación de señales
+- `RiskManager` — sizing de lotes y validación de límites del broker
+- `ExecutionEngine` — envío de órdenes, comprobación de estado y reintentos
+- `Logger` — trazabilidad de errores y estados operativos
 
-##  Gestión de Riesgo
-
-- Riesgo porcentual por trade
-- Control de exposición simultánea
-- Protección contra sobreoperación
-- Uso obligatorio de Stop Loss
+> La arquitectura está documentada en: [Manual técnico oficial](./docs/Manual_Tecnico_Oficial.md)
 
 ---
 
-##  Control de Errores
+##  Control de riesgo
 
-- Validación de órdenes
-- Verificación de retorno de funciones
-- Manejo estructurado de códigos de error
-- Logs detallados para auditoría
+Protecciones implementadas:
 
----
+- `RiskPercent` — porcentaje de capital por operación
+- `MaxConsecutiveLosses` — límite de racha negativa
+- `MaxDailyDrawdownPercent` — circuito de cierre diario
+- `MaxSpreadPoints` — filtro de ejecución en spread elevado
+- `StopLossPoints` y `TakeProfitPoints` — gestión de salida fija
 
-##  Enfoque Profesional
+Este diseño busca limitar la exposición por trade y preservar capital durante condiciones adversas.
 
-Este proyecto adopta principios de:
-
-- Ingeniería de software
-- Control estadístico
-- Gestión cuantitativa del riesgo
-- Disciplina operativa institucional
+> Ver especificación detallada en: [RISK_MANAGEMENT_SPEC.md](./docs/RISK_MANAGEMENT_SPEC.md)
 
 ---
 
-##  Disclaimer
+##  Validación y pruebas
 
-El trading conlleva riesgo financiero significativo.  
-Este software es una herramienta técnica y no garantiza resultados.
+Se recomienda un proceso de validación estructurado:
 
-El uso en cuenta real debe realizarse únicamente tras validación completa.
+1. Backtest completo con datos históricos reales
+2. Walk-forward validation para comprobar robustez
+3. Forward testing en demo
+4. Escalado progresivo en cuenta real
 
----
-
-##  Estado del Proyecto
-
-Versión: V8  
-Nivel arquitectónico: Institucional 
-Preparado para auditoría técnica y validación cuantitativa.
+> Protocolo completo en: [BACKTEST_VALIDATION_PROTOCOL.md](./docs/BACKTEST_VALIDATION_PROTOCOL.md)
 
 ---
 
-**Desarrollado bajo disciplina técnica rigurosa para MetaTrader 5.**
+##  Requisitos de instalación
+
+- MetaTrader 5 en Windows
+- MetaEditor para compilación
+- Símbolo BTCUSD o equivalente disponible
+- Históricos de al menos 24 meses
+- Acceso a una cuenta demo o real para pruebas
+
+---
+
+##  Instrucciones rápidas
+
+1. Copia `src/BB_BTC_EA_v8_1.mq5` a `MQL5/Experts/`
+2. Compila con MetaEditor
+3. Carga el EA en un gráfico BTCUSD
+4. Importa `src/config/default_parameters.set`
+5. Activa `AutoTrading` y `Permitir trading algorítmico`
+6. Confirma estado y logs en MT5
+
+> Para el procedimiento completo, consulta: [Guía de instalación](./Guia_Instalacion.md)
+
+---
+
+##  Release y entrega
+
+Entrega del release:
+
+- `releases/v1.0/BB_BTC_EA_v8_1.mq5`
+- `releases/v1.0/default_parameters.set`
+- `releases/v1.0/Manual_Tecnico_Oficial.md`
+
+> El release está preparado para distribución y revisión técnica.
+
+---
+
+##  Procedimientos de emergencia
+
+En caso de anomalía operativa:
+
+- Desactiva `AutoTrading`
+- Revisa el log de MT5
+- Verifica estado de la cuenta y margen
+- Si es necesario, detén el EA
+
+> Detalles en: [Procedimientos de emergencia](./Procedimientos_Emergencia.md)
+
+---
+
+##  Notas finales
+
+Este proyecto está diseñado para validación técnica y auditoría previa a su uso en producción. El trading conlleva riesgo; operar en real requiere validación completa y administración disciplinada.
+
+> Consulta el historial de cambios en: [docs/CHANGELOG.md](./docs/CHANGELOG.md)
