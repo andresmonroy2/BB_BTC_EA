@@ -1,0 +1,11 @@
+RiskPercent=1.0
+BB_Period=20
+BB_Deviation=2.0
+StopLossPoints=1000
+TakeProfitPoints=1500
+MaxRetriesPerBar=3
+MaxSpreadPoints=300
+SlippagePoints=50
+MaxConsecutiveLosses=3
+MaxDailyDrawdownPercent=5.0
+MagicNumber=888888

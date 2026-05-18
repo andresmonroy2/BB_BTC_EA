@@ -1,0 +1,19 @@
+# MetaTrader generated
+*.ex5
+*.ex4
+*.mqh
+*.mq5
+*.tpl
+
+# Editor and OS
+.vscode/
+.DS_Store
+*.log
+__pycache__/
+
+# Releases
+releases/
+
+# Python env
+.env
+venv/

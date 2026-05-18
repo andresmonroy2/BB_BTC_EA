@@ -1,0 +1,15 @@
+# Ensure MQL source files use CRLF (MetaEditor prefers CRLF)
+*.mq5 text eol=crlf
+*.mqh text eol=crlf
+*.mq4 text eol=crlf
+*.set text eol=crlf
+
+# Markdown and text files
+*.md text=auto
+
+# Binary files
+*.ex5 binary
+*.pdf binary
+
+# Releases should not be exported by default
+/releases/** export-ignore
