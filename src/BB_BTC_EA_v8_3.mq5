@@ -1,18 +1,21 @@
 //+------------------------------------------------------------------+
-//| BB_BTC_EA_v8_1 - Institutional Hardening Edition (Audited)       |
+//| BB_BTC_EA_v8_3 - Institutional Hardening Edition (Production Ready) |
 //+------------------------------------------------------------------+
-#property version   "8.1"
+#property version   "8.3"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
 
 //=========================== INPUTS =================================
 input double RiskPercent              = 1.0;
-input int    BB_Period                = 20;
-input double BB_Deviation             = 2.0;
+input int    BB_Period                = 19;
+input double BB_UpperDeviation        = 2.2;
+input double BB_LowerDeviation        = 2.0;
 
-input int    StopLossPoints           = 1000;
-input int    TakeProfitPoints         = 1500;
+input double StopLossPercent          = 3.0;
+input bool   UseRecentLowStop         = false;
+input int    RecentLowBars            = 3;
+input bool   UseUpperBandTakeProfit   = true;
 
 input int    MaxRetriesPerBar         = 3;
 input int    MaxSpreadPoints          = 300;
@@ -24,7 +27,8 @@ input double MaxDailyDrawdownPercent  = 5.0;
 input ulong  MagicNumber              = 888888;
 
 //=========================== GLOBALS =================================
-int      bbHandle = INVALID_HANDLE;
+int      maHandle      = INVALID_HANDLE;
+int      stdDevHandle  = INVALID_HANDLE;
 
 datetime lastBarTime = 0;
 datetime observedBarTime = 0;
@@ -39,15 +43,32 @@ bool     dailyLock = false;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   if(!TerminalInfoInteger(TERMINAL_CONNECTED))
+   if(_Period != PERIOD_D1)
+   {
+      Print("ERROR: La estrategia solo es compatible en temporalidad diaria (D1).");
       return INIT_FAILED;
+   }
+
+   if(!TerminalInfoInteger(TERMINAL_CONNECTED))
+   {
+      Print("ERROR: Terminal no conectado.");
+      return INIT_FAILED;
+   }
 
    if(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_MODE) != SYMBOL_TRADE_MODE_FULL)
+   {
+      Print("ERROR: No es posible operar en modo de solo precios.");
       return INIT_FAILED;
+   }
 
-   bbHandle = iBands(_Symbol,_Period,BB_Period,0,BB_Deviation,PRICE_CLOSE);
-   if(bbHandle == INVALID_HANDLE)
+   maHandle = iMA(_Symbol,_Period,BB_Period,0,MODE_SMA,PRICE_CLOSE);
+   stdDevHandle = iStdDev(_Symbol,_Period,BB_Period,0,MODE_SMA,PRICE_CLOSE);
+
+   if(maHandle == INVALID_HANDLE || stdDevHandle == INVALID_HANDLE)
+   {
+      Print("ERROR: No se pudieron inicializar los indicadores de Bollinger.");
       return INIT_FAILED;
+   }
 
    trade.SetExpertMagicNumber(MagicNumber);
    trade.SetAsyncMode(false);
@@ -62,8 +83,10 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-   if(bbHandle != INVALID_HANDLE)
-      IndicatorRelease(bbHandle);
+   if(maHandle != INVALID_HANDLE)
+      IndicatorRelease(maHandle);
+   if(stdDevHandle != INVALID_HANDLE)
+      IndicatorRelease(stdDevHandle);
 }
 
 //====================== DAILY RESET ROBUSTO ==========================
@@ -100,11 +123,22 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
    if(dealTicket <= 0) return;
 
    // Seleccionar explícitamente el trato desde la base de datos del terminal
-   if(HistoryDealSelect(dealTicket))
+   bool selected = false;
+   for(int attempt = 0; attempt < 3; attempt++)
    {
-      long  dealMagic  = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
-      string dealSymbol = HistoryDealGetString(dealTicket, DEAL_SYMBOL);
-      long  dealType   = HistoryDealGetInteger(dealTicket, DEAL_TYPE);
+      if(HistoryDealSelect(dealTicket))
+      {
+         selected = true;
+         break;
+      }
+      Sleep(5);
+   }
+   if(!selected)
+      return;
+
+   long  dealMagic  = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
+   string dealSymbol = HistoryDealGetString(dealTicket, DEAL_SYMBOL);
+   long  dealType   = HistoryDealGetInteger(dealTicket, DEAL_TYPE);
 
       if(dealMagic != MagicNumber || dealSymbol != _Symbol)
          return;
@@ -156,31 +190,32 @@ void OnTick()
    if(currentBar == lastBarTime)
       return;
 
-   if(BarsCalculated(bbHandle) < BB_Period)
+   if(BarsCalculated(maHandle) < BB_Period || BarsCalculated(stdDevHandle) < BB_Period)
       return;
-
-   double upper[1], lower[1];
-   if(CopyBuffer(bbHandle,1,1,1,upper) <= 0) return;
-   if(CopyBuffer(bbHandle,2,1,1,lower) <= 0) return;
 
    double closePrev = iClose(_Symbol,_Period,1);
    if(closePrev <= 0) return;
 
-   bool completed = false;
+   double ma, upper, lower;
+   if(!GetBollingerBands(ma, upper, lower, 1))
+      return;
 
-   if(closePrev > upper[0])
-      completed = ExecuteTrade(ORDER_TYPE_SELL);
-   else if(closePrev < lower[0])
-      completed = ExecuteTrade(ORDER_TYPE_BUY);
-   else
-      completed = true;
+   if(PositionExists())
+   {
+      if(ClosePositionIfNeeded(closePrev, ma, upper))
+         lastBarTime = currentBar;
+      return;
+   }
 
-   if(completed)
-      lastBarTime = currentBar;
+   if(closePrev <= lower)
+   {
+      if(ExecuteTrade(ORDER_TYPE_BUY, ma, upper))
+         lastBarTime = currentBar;
+   }
 }
 
 //====================== EXECUTION ===================================
-bool ExecuteTrade(ENUM_ORDER_TYPE type)
+bool ExecuteTrade(ENUM_ORDER_TYPE type,double ma,double upper)
 {
    if(retryCount >= MaxRetriesPerBar)
       return true; // Bloqueo de la vela por exceso de reintentos
@@ -196,35 +231,46 @@ bool ExecuteTrade(ENUM_ORDER_TYPE type)
    if(PositionExists())
       return true;
 
-   // AUDITORÍA: Filtro cruzado de seguridad (Stops Level + Freeze Level)
    long stopLevel   = SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL);
    long freezeLevel = SymbolInfoInteger(_Symbol,SYMBOL_TRADE_FREEZE_LEVEL);
    long executionLimit = MathMax(stopLevel, freezeLevel);
 
-   if(StopLossPoints < executionLimit || TakeProfitPoints < executionLimit)
+   double entryPrice = tick.ask;
+   double sl;
+   if(UseRecentLowStop)
    {
-      Print("ERROR: Parámetros SL/TP dentro de la zona de restricción del broker.");
+      double recentLow = GetRecentLow(RecentLowBars);
+      if(recentLow <= 0)
+      {
+         Print("ERROR: No se pudo calcular el mínimo reciente para el SL.");
+         return true;
+      }
+      sl = NormalizeDouble(recentLow - _Point * 10, _Digits);
+   }
+   else
+   {
+      sl = NormalizeDouble(entryPrice * (1.0 - StopLossPercent/100.0), _Digits);
+   }
+
+   double tp = 0;
+
+   if(sl >= entryPrice)
+   {
+      Print("ERROR: SL no válido. SL=", sl, " precio=", entryPrice);
       return true;
    }
 
-   double price = (type == ORDER_TYPE_BUY) ? tick.ask : tick.bid;
+   if((entryPrice - sl)/_Point < executionLimit)
+   {
+      Print("ERROR: SL dentro de la zona de restricción del broker.");
+      return true;
+   }
 
-   double sl = (type == ORDER_TYPE_BUY) ?
-      NormalizeDouble(price - StopLossPoints*_Point,_Digits) :
-      NormalizeDouble(price + StopLossPoints*_Point,_Digits);
-
-   double tp = (type == ORDER_TYPE_BUY) ?
-      NormalizeDouble(price + TakeProfitPoints*_Point,_Digits) :
-      NormalizeDouble(price - TakeProfitPoints*_Point,_Digits);
-
-   double lot = CalculateLotSize(type,price);
+   double lot = CalculateLotSize(entryPrice, sl);
    if(lot <= 0)
       return true;
 
-   bool sent = (type == ORDER_TYPE_BUY) ?
-      trade.Buy(lot,_Symbol,price,sl,tp) :
-      trade.Sell(lot,_Symbol,price,sl,tp);
-
+   bool sent = trade.Buy(lot, _Symbol, entryPrice, sl, tp);
    uint ret = trade.ResultRetcode();
 
    if(sent && (ret == TRADE_RETCODE_DONE || ret == TRADE_RETCODE_PLACED))
@@ -237,26 +283,31 @@ bool ExecuteTrade(ENUM_ORDER_TYPE type)
    {
       retryCount++;
       Print("RETRY: Requote detectado. Intento: ", retryCount);
-      return false; // Permite reintentar con precios frescos en el siguiente tick
+      return false;
    }
 
+   Print("ERROR: Orden de compra rechazada. Código: ", ret);
    return true;
 }
 
 //====================== LOT CALC ====================================
-double CalculateLotSize(ENUM_ORDER_TYPE type,double price)
+double CalculateLotSize(double price,double stopLoss)
 {
    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
    double riskMoney = equity * RiskPercent / 100.0;
 
+   double lossPerUnit = MathAbs(price - stopLoss);
+   if(lossPerUnit <= 0)
+      return 0;
+
    double tickValue = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE);
    double tickSize  = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
 
-   if(tickValue<=0 || tickSize<=0)
+   if(tickValue <= 0 || tickSize <= 0)
       return 0;
 
-   double valuePerLot = StopLossPoints * (_Point/tickSize) * tickValue;
-   if(valuePerLot<=0)
+   double valuePerLot = lossPerUnit / tickSize * tickValue;
+   if(valuePerLot <= 0)
       return 0;
 
    double rawLot = riskMoney / valuePerLot;
@@ -264,26 +315,115 @@ double CalculateLotSize(ENUM_ORDER_TYPE type,double price)
    double minLot  = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
    double maxLot  = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MAX);
    double stepLot = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_STEP);
-      if(stepLot <= 0)
-         return 0;
+   if(stepLot <= 0)
+      return 0;
 
-      if(rawLot < minLot)
+   if(rawLot < minLot)
       return 0;
 
    double lot = MathFloor(rawLot/stepLot) * stepLot;
    lot = MathMin(lot,maxLot);
 
    double marginReq;
-   if(!OrderCalcMargin(type,_Symbol,lot,price,marginReq))
+   if(!OrderCalcMargin(ORDER_TYPE_BUY,_Symbol,lot,price,marginReq))
       return 0;
 
    if(marginReq > AccountInfoDouble(ACCOUNT_MARGIN_FREE))
    {
-      Print("CRÍTICO: Margen insuficiente para el lote institucional calculado.");
+      Print("CRÍTICO: Margen insuficiente para el lote calculado.");
       return 0;
    }
 
    return lot;
+}
+
+bool GetBollingerBands(double &ma,double &upper,double &lower,int shift)
+{
+   double maArray[1];
+   double stdDevArray[1];
+
+   if(CopyBuffer(maHandle,0,shift,1,maArray) <= 0)
+      return false;
+   if(CopyBuffer(stdDevHandle,0,shift,1,stdDevArray) <= 0)
+      return false;
+
+   ma = maArray[0];
+   double stdDev = stdDevArray[0];
+
+   upper = ma + BB_UpperDeviation * stdDev;
+   lower = ma - BB_LowerDeviation * stdDev;
+   return true;
+}
+
+double GetRecentLow(int bars)
+{
+   int available = Bars(_Symbol,_Period);
+   if(available < 2)
+      return 0;
+
+   int count = MathMin(bars, available - 1);
+   if(count <= 0)
+      return 0;
+
+   double lows[];
+   ArrayResize(lows,count);
+
+   int copied = CopyLow(_Symbol,_Period,1,count,lows);
+   if(copied <= 0)
+      return 0;
+
+   int index = ArrayMinimum(lows);
+   if(index < 0 || index >= copied)
+      return 0;
+
+   double recentLow = lows[index];
+   return (recentLow <= 0) ? 0 : recentLow;
+}
+
+bool CloseCurrentPosition()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionSelectByTicket(ticket))
+      {
+         if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
+            PositionGetInteger(POSITION_MAGIC) == MagicNumber)
+         {
+            if(trade.PositionClose(ticket))
+               return true;
+            Print("ERROR: No se pudo cerrar la posición. Código: ", trade.ResultRetcode());
+            return false;
+         }
+      }
+   }
+   return false;
+}
+
+bool ClosePositionIfNeeded(double closePrice,double ma,double upper)
+{
+   if(!PositionExists())
+      return false;
+
+   if(UseUpperBandTakeProfit)
+   {
+      if(closePrice > upper)
+      {
+         Print("Cierre por objetivo agresivo: cierre sobre banda superior.");
+         return CloseCurrentPosition();
+      }
+   }
+   else
+   {
+      if(closePrice > ma)
+      {
+         Print("Cierre por objetivo conservador: cierre sobre media móvil central.");
+         return CloseCurrentPosition();
+      }
+   }
+
+   return false;
 }
 
 //====================== POSITION CHECK ===============================

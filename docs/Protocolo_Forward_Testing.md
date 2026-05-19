@@ -1,4 +1,4 @@
-# Protocolo de Forward Testing – BB_BTC_EA_v8_1
+# Protocolo de Forward Testing – BB_BTC_EA_v8_3
 
 ## Guía para Testear el Robot en Cuenta Demo (30 días)
 

@@ -1,8 +1,8 @@
 # MANUAL TÉCNICO OFICIAL
 
-BB_BTC_EA_v8_1
+BB_BTC_EA_v8_3
 
-Versión 1.0 – Institutional Hardening Edition
+Versión 8.3 – Institutional Hardening Edition
 Plataforma: MetaTrader 5
 Documento Técnico Normativo para Implementación y Validación Cuantitativa
 Clasificación: Uso Profesional / Gestión Financiera
@@ -21,9 +21,9 @@ Este documento está dirigido a profesionales en ingeniería financiera, anális
 
 ## 2. Descripción General del Sistema
 
-- Nombre del sistema: BB_BTC_EA_v8_1
+- Nombre del sistema: BB_BTC_EA_v8_3 
 - Tipo: Expert Advisor (EA) para MetaTrader 5
-- Modelo estratégico: Reversión a la media basada en Bandas de Bollinger
+- Modelo estratégico: Reversión a la media basada en Bandas de Bollinger asimétricas
 - Arquitectura: Control de riesgo multicapa con ejecución síncrona y monitoreo asíncrono de transacciones
 
 El sistema ejecuta decisiones exclusivamente sobre velas cerradas, evitando señales basadas en ruido intrabar.
@@ -50,18 +50,19 @@ Ninguna orden es enviada si una sola validación falla.
 
 ### 4.1 Indicador Base
 
-Bandas de Bollinger configuradas por:
+Bandas de Bollinger asimétricas configuradas por:
 
-- Periodo: `BB_Period`
-- Desviación estándar: `BB_Deviation`
+- Periodo: `BB_Period` = 19
+- Desviación superior: `BB_UpperDeviation` = 2.2
+- Desviación inferior: `BB_LowerDeviation` = 2.0
 - Precio base: Cierre
 
 ### 4.2 Lógica de Entrada
 
-- Cierre previo > Banda Superior → Venta
-- Cierre previo < Banda Inferior → Compra
-
-La evaluación se realiza en índice 1 (vela cerrada).
+- Cierre previo <= Banda Inferior → Compra LONG
+- No se ejecutan ventas en corto (SHORT)
+- La evaluación se realiza en índice 1 (vela cerrada)
+- Las salidas se gestionan dinámicamente por mercado en `ClosePositionIfNeeded()`
 
 ## 5. Gestión de Riesgo Institucional
 
@@ -215,7 +216,7 @@ No:
 
 ## 12. Conclusión Técnica
 
-BB_BTC_EA_v8_1 es un sistema de ejecución cuantitativa con arquitectura robusta, diseñado para operar bajo disciplina financiera estricta.
+BB_BTC_EA_v8_3 es un sistema de ejecución cuantitativa con arquitectura robusta, diseñado para operar bajo disciplina financiera estricta.
 
 Su idoneidad para entorno real depende exclusivamente de:
 

@@ -1,4 +1,4 @@
-# Procedimientos de Emergencia – BB_BTC_EA_v8_1
+# Procedimientos de Emergencia – BB_BTC_EA_v8_3
 
 ## Qué Hacer Si Algo Falla
 
@@ -421,7 +421,7 @@ Abre el **Journal** para ver mensajes de error:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ CHECKLIST DE EMERGENCIA – BB_BTC_EA_v8_1               │
+│ CHECKLIST DE EMERGENCIA – BB_BTC_EA_v8_3               │
 ├─────────────────────────────────────────────────────────┤
 │ [ ] 1. DETÉN el robot (Herramientas → Opciones)        │
 │ [ ] 2. Abre Journal (Ctrl+J)                           │

@@ -1,6 +1,6 @@
-# BB_BTC_EA_v8_1 — Expert Advisor para MetaTrader 5
+# BB_BTC_EA_v8_1 — Expert Advisor para MetaTrader 5 (interno v8.3)
 
-BB_BTC_EA_v8_1 es un Expert Advisor MQL5 orientado a trading sistemático de BTC/USD sobre MetaTrader 5. Está diseñado para ejecutar liquidaciones automáticas con gestión de riesgo disciplinada, validaciones de integridad en tiempo de ejecución y trazabilidad técnica para auditoría.
+BB_BTC_EA_v8_1 es un Expert Advisor MQL5 orientado a trading sistemático de BTC/USD sobre MetaTrader 5. El código fuente interno está actualizado a la versión `8.3`, con gestión de salidas dinámicas y robustez de ejecución mejorada en entornos de capital real.
 
 ---
 
