@@ -1,5 +1,5 @@
 RiskPercent=1.0
-BB_Period=20
+BB_Period=19
 BB_Deviation=2.0
 StopLossPoints=1000
 TakeProfitPoints=1500
